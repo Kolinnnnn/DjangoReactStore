@@ -13,7 +13,7 @@ function Login() {
 
     useEffect(() => {
         if(isLoggedIn()){
-            navigate('/')
+            navigate("/")
         }
     })
 
@@ -22,11 +22,12 @@ function Login() {
         setPassword("")
     }
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault()
+        console.log("Login form submitted");
         setIsLoading(true)
 
-        const {error} = login(email,password)
+        const {error} = await login(email,password)
         if(error){
             console.error("Login error:", error)
             alert(error)

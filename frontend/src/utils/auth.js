@@ -100,7 +100,7 @@ export const getRefreshToken = async () => {
 export const isAccessTokenExpired = (accessToken) => {
     try {
         const decodedToken = jwt_decode(accessToken)
-        return decodedToken.exp < Date.now() / 100
+        return decodedToken.exp < Date.now() / 1000
     } catch (error) {
         console.log(error);
         return true
