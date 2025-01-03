@@ -1,40 +1,22 @@
-import React, { useState, useEffect } from "react";
-import { login } from "../../utils/auth";
+import { useState } from "react";
+import apiInstance from "../../utils/axios";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuthStore } from "../../store/auth";
 
-function Login() {
+function ForgotPassword() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (isLoggedIn()) {
-      navigate("/");
-    }
-  });
-
-  const resetForm = () => {
-    setEmail("");
-    setPassword("");
-  };
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    console.log("Login form submitted");
+  const handleSubmit = async () => {
     setIsLoading(true);
-
-    const { error } = await login(email, password);
-    if (error) {
-      console.error("Login error:", error);
-      setIsLoading(false);
-      alert(error);
-    } else {
-      navigate("/");
-      resetForm();
+    try {
+      await apiInstance.get(`user/password-reset/${email}/`).then((res) => {
+        alert("An email has been sent to you");
+        setIsLoading(false);
+      });
+    } catch (error) {
+      alert("Email does not exists");
       setIsLoading(false);
     }
   };
@@ -50,7 +32,6 @@ function Login() {
                 <div className="col-xl-5 col-md-8">
                   <div className="card rounded-5">
                     <div className="card-body p-4">
-                      <h3 className="text-center">Login</h3>
                       <br />
 
                       <div className="tab-content">
@@ -60,7 +41,7 @@ function Login() {
                           role="tabpanel"
                           aria-labelledby="tab-login"
                         >
-                          <form onSubmit={handleLogin}>
+                          <div>
                             {/* Email input */}
                             <div className="form-outline mb-4">
                               <label className="form-label" htmlFor="Full Name">
@@ -76,57 +57,32 @@ function Login() {
                               />
                             </div>
 
-                            <div className="form-outline mb-4">
-                              <label
-                                className="form-label"
-                                htmlFor="loginPassword"
-                              >
-                                Password
-                              </label>
-                              <input
-                                type="password"
-                                id="password"
-                                name="password"
-                                value={password}
-                                className="form-control"
-                                onChange={(e) => setPassword(e.target.value)}
-                              />
-                            </div>
-
                             {isLoading === true ? (
                               <button
                                 disabled
+                                type="button"
                                 className="btn btn-primary w-100"
-                                type="submit"
                               >
                                 <span className="mr-2">Processing</span>
                                 <i className="fas fa-spinner fa-spin" />
                               </button>
                             ) : (
                               <button
+                                onClick={handleSubmit}
                                 className="btn btn-primary w-100"
-                                type="submit"
+                                type="button"
                               >
-                                <span className="mr-2">Sign In</span>
-                                <i className="fas fa-sign-in" />
+                                <span className="mr-2">Send Email</span>
+                                <i className="fas fa-paper-plane" />
                               </button>
                             )}
 
                             <div className="text-center">
                               <p className="mt-4">
-                                Don't have an account?{" "}
-                                <Link to="/register">Register</Link>
-                              </p>
-                              <p className="mt-0">
-                                <Link
-                                  to="/forgot-password/"
-                                  className="text-danger"
-                                >
-                                  Forgot Password?
-                                </Link>
+                                Want to sign in? <Link to="/login">Login</Link>
                               </p>
                             </div>
-                          </form>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -141,4 +97,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default ForgotPassword;
