@@ -61,7 +61,7 @@ class ProductReviewAdmin(admin.ModelAdmin):
 class NotificationAdmin(admin.ModelAdmin):
     list_editable = ['seen']
     list_display = ['order', 'seen', 'user', 'vendor', 'date']
-
+#123
 
 admin.site.register(Category)
 admin.site.register(Product, ProductAdmin)
