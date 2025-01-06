@@ -6,7 +6,7 @@ class Vendor(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     image = models.FileField(upload_to='vendor', blank=True, null=True, default='vendor.jpg')
     name = models.CharField(max_length=100, help_text='Shop name', null=True, blank=True)
-    description = models.TimeField(null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
     mobile = models.CharField(max_length=100, help_text='Shop mobile number', null=True, blank=True)
     active = models.BooleanField(default=False)
     date = models.DateTimeField(auto_now_add=True)
@@ -22,5 +22,4 @@ class Vendor(models.Model):
     def save(self, *args, **kwargs):
         if self.slug == "" or self.slug == None:
             self.slug = slugify(self.name)
-
         super(Vendor, self).save(*args,**kwargs)
