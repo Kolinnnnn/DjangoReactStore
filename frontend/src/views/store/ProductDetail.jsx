@@ -4,6 +4,15 @@ import apiInstance from '../../utils/axios'
 import GetCurrentAddress from '../plugin/UserCountry'
 import UserData from '../plugin/UserData'
 import CartID from '../plugin/CartID'
+import Swal from 'sweetalert2'
+
+const Toast = Swal.mixin({
+    toast:true,
+    position:"top",
+    showConfirmButton:false,
+    timer:2000,
+    timerProgressBar:true
+})
 
 function ProductDetail() {
     const [product, setProduct] = useState({})
@@ -21,8 +30,6 @@ function ProductDetail() {
 
     useEffect(() => {
         apiInstance.get(`products/${param.slug}/`).then((res) => {
-            console.log(res.data);
-            console.log("Specifications:", res.data.specification);
             setProduct(res.data)
             setSpecifications(res.data.specification || [])
             setGallery(res.data.gallery)
@@ -45,11 +52,31 @@ function ProductDetail() {
         setQtyValue(e.target.value)
     }
 
-    const handleAddToCart = () => {
-        console.log(sizeValue);
-        console.log(currentAddress);
-        console.log(userData?.user_id);
-        console.log(cart_id);
+    const handleAddToCart = async () => {
+        try {
+            const formData = new FormData()
+
+        formData.append("product_id", product.id)
+        formData.append("user_id", userData?.user_id)
+        formData.append("qty", qtyValue)
+        formData.append("price", product.price)
+        formData.append("shipping_amount", product.shipping_amount)
+        formData.append("country", currentAddress.country)
+        formData.append("size", sizeValue)
+        formData.append("color", colorValue)
+        formData.append("cart_id", cart_id)
+
+        const response = await apiInstance.post('cart-view/', formData)
+
+        Toast.fire({
+            icon: "success",
+            title: response.data.message
+        })
+
+        console.log(response.data);
+        } catch (error) {
+            console.log(error);
+        }
     }
 
     return (

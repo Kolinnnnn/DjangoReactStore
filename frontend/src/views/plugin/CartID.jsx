@@ -18,7 +18,7 @@ function CartID() {
     if (!existingRandomString) {
         generateRandomString()
     } else {
-        console.log(existingRandomString);
+        
     }
 
     return existingRandomString
