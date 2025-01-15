@@ -40,16 +40,11 @@ class Product(models.Model):
     status = models.CharField(max_length=100, choices=STATUS, default='published')
     featured = models.BooleanField(default=False)
     views = models.PositiveIntegerField(default=0)
-    rating = models.PositiveIntegerField(default=0)
-    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
+    rating = models.PositiveIntegerField(default=0, null=True, blank=True)
+    vendor = models.ForeignKey(Vendor, on_delete=models.SET_NULL, null=True, blank=True)
     pid = ShortUUIDField(unique=True, length=10, alphabet="abcdefg12345")
     slug = models.SlugField(unique=True)
     date = models.DateTimeField(auto_now_add=True)
-
-    def save(self, *args, **kwargs):
-        if self.slug == "" or self.slug == None:
-            self.slug = slugify(self.name)
-        super(Product, self).save(*args,**kwargs)
 
     def __str__(self):
         return self.title
@@ -74,8 +69,14 @@ class Product(models.Model):
         return Color.objects.filter(product=self)
     
     def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)
+        
+        super(Product, self).save(*args, **kwargs)
+        
         self.rating = self.product_rating()
-        super(Product,self).save(*args,**kwargs)
+        super(Product, self).save(update_fields=["rating"])
+
     
 class Gallery(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
@@ -273,3 +274,16 @@ class Coupon(models.Model):
 
     def __str__(self):
         return self.code
+    
+class Tax(models.Model):
+    country = models.CharField(max_length=100)
+    rate = models.IntegerField(default=5, help_text="Numbers here are percentage")
+    active = models.BooleanField(default=True)
+    date = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name_plural = 'Taxes'
+        ordering = ['country']
+
+    def __str__(self):
+        return self.country
