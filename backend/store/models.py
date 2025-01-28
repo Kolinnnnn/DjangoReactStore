@@ -168,10 +168,25 @@ class CartOrder(models.Model):
     country = models.CharField(max_length=100, null=True, blank=True)
     oid = ShortUUIDField(unique=True, length=10, alphabet='abcdefg12345')
     date = models.DateTimeField(auto_now_add=True)
+    stripe_session_id = models.CharField(max_length=1000,null=True,blank=True)
 
     def __str__(self):
         return self.oid
     
+    def orderitem(self):
+        return CartOrderItem.objects.filter(order=self)
+
+class Coupon(models.Model):
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
+    used_by = models.ManyToManyField(User, blank=True)
+    code = models.CharField(max_length=1000)
+    discount = models.IntegerField(default=1)
+    active = models.BooleanField(default=False)
+    date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.code
+
 class CartOrderItem(models.Model):
     order = models.ForeignKey(CartOrder, on_delete=models.CASCADE)
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
@@ -186,6 +201,7 @@ class CartOrderItem(models.Model):
     country = models.CharField(max_length=100, null=True, blank=True)
     size = models.CharField(max_length=100, null=True, blank=True)
     color = models.CharField(max_length=100, null=True, blank=True)
+    coupon = models.ManyToManyField(Coupon, blank=True)
     initial_total = models.DecimalField(default=0.00,max_digits=12,decimal_places=2)
     saved = models.DecimalField(default=0.00,max_digits=12,decimal_places=2)
     oid = ShortUUIDField(unique=True, length=10, alphabet='abcdefg12345')
@@ -263,17 +279,6 @@ class Notification(models.Model):
         else:
             return f"Notification - {self.pk}"
     
-
-class Coupon(models.Model):
-    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE)
-    used_by = models.ManyToManyField(User, blank=True)
-    code = models.CharField(max_length=1000)
-    discount = models.IntegerField(default=1)
-    active = models.BooleanField(default=False)
-    date = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.code
     
 class Tax(models.Model):
     country = models.CharField(max_length=100)

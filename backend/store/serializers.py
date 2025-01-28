@@ -87,13 +87,13 @@ class CartSerializer(serializers.ModelSerializer):
         else:
             self.Meta.depth = 3
 
-class CartOrderSerializer(serializers.ModelSerializer):
+class CartOrderItemSerializer(serializers.ModelSerializer):
     class Meta:
-        model = CartOrder
+        model = CartOrderItem
         fields = "__all__"
 
     def __init__(self, *args, **kwargs):
-        super(CartOrderSerializer, self).__init__(*args, **kwargs)
+        super(CartOrderItemSerializer, self).__init__(*args, **kwargs)
 
         request = self.context.get('request')
 
@@ -102,13 +102,14 @@ class CartOrderSerializer(serializers.ModelSerializer):
         else:
             self.Meta.depth = 3
 
-class CartOrderItemSerializer(serializers.ModelSerializer):
+class CartOrderSerializer(serializers.ModelSerializer):
+    orderitem = CartOrderItemSerializer(many=True, read_only=True)
     class Meta:
-        model = CartOrderItem
+        model = CartOrder
         fields = "__all__"
 
     def __init__(self, *args, **kwargs):
-        super(CartOrderItemSerializer, self).__init__(*args, **kwargs)
+        super(CartOrderSerializer, self).__init__(*args, **kwargs)
 
         request = self.context.get('request')
 

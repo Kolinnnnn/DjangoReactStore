@@ -5,6 +5,7 @@ import UserData from '../plugin/UserData'
 import CartID from '../plugin/CartID'
 import GetCurrentAddress from '../plugin/UserCountry'
 import Swal from 'sweetalert2'
+import { useNavigate } from 'react-router-dom'
 
 const Toast = Swal.mixin({
     toast:true,
@@ -21,6 +22,7 @@ function Cart() {
     const userData = UserData()
     const cart_id = CartID()
     const currentAddress = GetCurrentAddress()
+    const navigate = useNavigate()
 
     const [fullName, setFullName] = useState('')
     const [email, setEmail] = useState('')
@@ -164,9 +166,9 @@ function Cart() {
                 title: "Missing fields!",
                 text: "All fields are required before checkout!"
             })
-        }
-
-        const formdata = new FormData()
+        } else{
+        try {
+            const formdata = new FormData()
         formdata.append("full_name", fullName)
         formdata.append("email", email)
         formdata.append("mobile", mobile)
@@ -178,6 +180,12 @@ function Cart() {
         formdata.append("user_id", userData ? userData?.userId : 0)
 
         const response = await apiInstance.post('create-order/', formdata)
+        navigate(`/checkout/${response.data.order_oid}`)
+        } catch (error) {
+            console.log(error);
+        }
+        }
+        
     }
 
     return (

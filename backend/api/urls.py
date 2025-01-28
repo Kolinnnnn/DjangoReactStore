@@ -22,5 +22,11 @@ urlpatterns = [
     path('cart-delete/<str:cart_id>/<int:item_id>/<int:user_id>/', store_views.CartItemDeleteView.as_view()),
     path('cart-delete/<str:cart_id>/<int:item_id>/', store_views.CartItemDeleteView.as_view()),
     path('create-order/', store_views.CreateOrderView.as_view()),
+    path('checkout/<order_oid>/', store_views.CheckoutView.as_view()),
+    path('coupon/', store_views.CouponView.as_view(), name='coupon'),
+
+    #Payment
+    path('stripe-checkout/<order_oid>/', store_views.StripeCheckoutView.as_view()),
+    path('payment-success/<order_oid>/', store_views.PaymentSuccessView.as_view()),
 ]
 
