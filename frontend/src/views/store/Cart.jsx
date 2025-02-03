@@ -177,7 +177,7 @@ function Cart() {
         formdata.append("state", state)
         formdata.append("country", country)
         formdata.append("cart_id", cart_id)
-        formdata.append("user_id", userData ? userData?.userId : 0)
+        formdata.append("user_id", userData ? userData?.user_id : 0)
 
         const response = await apiInstance.post('create-order/', formdata)
         navigate(`/checkout/${response.data.order_oid}`)

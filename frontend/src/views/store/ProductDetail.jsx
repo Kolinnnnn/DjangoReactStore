@@ -5,6 +5,7 @@ import GetCurrentAddress from '../plugin/UserCountry'
 import UserData from '../plugin/UserData'
 import CartID from '../plugin/CartID'
 import Swal from 'sweetalert2'
+import moment from 'moment'
 
 const Toast = Swal.mixin({
     toast:true,
@@ -23,10 +24,38 @@ function ProductDetail() {
     const [colorValue, setColorValue] = useState("No color")
     const [sizeValue, setSizeValue] = useState("No size")
     const [qtyValue, setQtyValue] = useState(1)
+    const [reviews, setReviews] = useState([])
+    const [createReview, setCreateReview] = useState({
+        user_id: 0, 
+        prooduct_id: product?.id,
+        review: "",
+        rating: 0
+    })
     const param = useParams()
     const currentAddress = GetCurrentAddress()
     const userData = UserData()
     const cart_id = CartID()
+
+    const handleReviewChange = (e) => {
+        setCreateReview({
+            ...createReview,
+            [e.target.name]: e.target.value
+        })
+    }
+
+    const handleReviewSubmit = (e) => {
+        e.preventDefault()
+        const formdata = new FormData()
+        formdata.append("user_id", userData?.user_id)
+        formdata.append("product_id", product?.id)
+        formdata.append("rating", createReview.rating)
+        formdata.append("review", createReview.review)
+
+        apiInstance.post(`reviews/${product?.id}/`, formdata).then((res) => {
+            console.log(res.data);
+            fetchReviewData();
+        })
+    }
 
     useEffect(() => {
         apiInstance.get(`products/${param.slug}/`).then((res) => {
@@ -78,6 +107,20 @@ function ProductDetail() {
             console.log(error);
         }
     }
+
+    const fetchReviewData = () => {
+        if (product !== null){
+            apiInstance.get(`reviews/${product?.id}/`).then((res) => {
+                setReviews(res.data)
+            })
+        }
+    }
+
+    useEffect(() => {
+        if (product && product.id) {
+            fetchReviewData();
+        }
+    },[product])
 
     return (
         <div>
@@ -323,17 +366,17 @@ function ProductDetail() {
                                     {/* Column 1: Form to create a new review */}
                                     <div className="col-md-6">
                                         <h2>Create a New Review</h2>
-                                        <form>
+                                        <form onSubmit={handleReviewSubmit}>
                                             <div className="mb-3">
                                                 <label htmlFor="username" className="form-label">
                                                     Rating
                                                 </label>
-                                                <select name="" className='form-select' id="">
+                                                <select name="rating" className='form-select' onChange={handleReviewChange} id="">
                                                     <option value="1">1 Star</option>
-                                                    <option value="1">2 Star</option>
-                                                    <option value="1">3 Star</option>
-                                                    <option value="1">4 Star</option>
-                                                    <option value="1">5 Star</option>
+                                                    <option value="2">2 Star</option>
+                                                    <option value="3">3 Star</option>
+                                                    <option value="4">4 Star</option>
+                                                    <option value="5">5 Star</option>
                                                 </select>
                                             </div>
                                             <div className="mb-3">
@@ -344,8 +387,10 @@ function ProductDetail() {
                                                     className="form-control"
                                                     id="reviewText"
                                                     rows={4}
+                                                    name='review'
                                                     placeholder="Write your review"
-                                                    defaultValue={""}
+                                                    value={createReview.review}
+                                                    onChange={handleReviewChange}
                                                 />
                                             </div>
                                             <button type="submit" className="btn btn-primary">
@@ -356,49 +401,62 @@ function ProductDetail() {
                                     {/* Column 2: Display existing reviews */}
                                     <div className="col-md-6">
                                         <h2>Existing Reviews</h2>
-                                        <div className="card mb-3">
-                                            <div className="row g-0">
+                                        <div className="mb-3">
+                                            {reviews.map((r,index) => (
+                                            <div className="row g-0 border p-2 mb-3" key={index}>
                                                 <div className="col-md-3">
                                                     <img
-                                                        src="https://www.gravatar.com/avatar/2c7d99fe281ecd3bcd65ab915bac6dd5?s=250"
+                                                        src={r.profile.image}
                                                         alt="User Image"
                                                         className="img-fluid"
                                                     />
                                                 </div>
                                                 <div className="col-md-9">
                                                     <div className="card-body">
-                                                        <h5 className="card-title">User 1</h5>
-                                                        <p className="card-text">August 10, 2023</p>
+                                                        <h5 className="card-title">{r.profile.full_name}</h5>
+                                                        <p className="card-text">{moment(r.date).format("MMM D, YYYY")}</p>
                                                         <p className="card-text">
-                                                            This is a great product! I'm really satisfied with
-                                                            it.
+                                                            {r.review}
+                                                            <br/>
+                                                            {r.rating === 1 &&
+                                                                <i className='fas fa-star'></i>
+                                                            }
+                                                            {r.rating === 2 &&
+                                                                <div>
+                                                                    <i className='fas fa-star'></i>
+                                                                    <i className='fas fa-star'></i>
+                                                                </div>
+                                                            }
+                                                            {r.rating === 3 &&
+                                                                <div>
+                                                                    <i className='fas fa-star'></i>
+                                                                    <i className='fas fa-star'></i>
+                                                                    <i className='fas fa-star'></i>
+                                                                </div>
+                                                            }
+                                                            {r.rating === 4 &&
+                                                                <div>
+                                                                    <i className='fas fa-star'></i>
+                                                                    <i className='fas fa-star'></i>
+                                                                    <i className='fas fa-star'></i>
+                                                                    <i className='fas fa-star'></i>
+                                                                </div>
+                                                            }
+                                                            {r.rating === 5 &&
+                                                                <div>
+                                                                    <i className='fas fa-star'></i>
+                                                                    <i className='fas fa-star'></i>
+                                                                    <i className='fas fa-star'></i>
+                                                                    <i className='fas fa-star'></i>
+                                                                    <i className='fas fa-star'></i>
+                                                                </div>
+                                                            }
                                                         </p>
                                                     </div>
                                                 </div>
                                             </div>
+                                            ))}
                                         </div>
-                                        <div className="card mb-3">
-                                            <div className="row g-0">
-                                                <div className="col-md-3">
-                                                    <img
-                                                        src="https://www.gravatar.com/avatar/2c7d99fe281ecd3bcd65ab915bac6dd5?s=250"
-                                                        alt="User Image"
-                                                        className="img-fluid"
-                                                    />
-                                                </div>
-                                                <div className="col-md-9">
-                                                    <div className="card-body">
-                                                        <h5 className="card-title">User 2</h5>
-                                                        <p className="card-text">August 15, 2023</p>
-                                                        <p className="card-text">
-                                                            The quality of this product exceeded my
-                                                            expectations!
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {/* More reviews can be added here */}
                                     </div>
                                 </div>
                             </div>

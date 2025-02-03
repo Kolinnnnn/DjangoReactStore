@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect
+import requests
 from userauths.models import User
 from store.models import Category, Tax, Product, Gallery, Specification, Size, Color, Cart, CartOrder, CartOrderItem, ProductFaq, Review, Wishlist, Notification, Coupon
-from store.serializers import ProductSerializer, CaregorySerializer, CartSerializer, CartOrderSerializer, CartOrderItemSerializer, CouponSerializer
+from store.serializers import ProductSerializer, CaregorySerializer, CartSerializer, CartOrderSerializer, CartOrderItemSerializer, CouponSerializer, NotificationSerializer, ReviewSerializer
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from decimal import Decimal
@@ -10,6 +11,14 @@ import stripe
 from django.conf import settings
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
+
+def send_notification(user=None,vendor=None,order=None,order_item=None):
+    Notification.objects.create(
+        user=user,
+        vendor=vendor,
+        order=order,
+        order_item=order_item
+    )
 
 class CategoryListAPIView(generics.ListAPIView):
     queryset = Category.objects.all()
@@ -203,7 +212,7 @@ class CreateOrderView(generics.CreateAPIView):
     permission_classes = [AllowAny]
     queryset = CartOrder.objects.all()
 
-    def create(self, request):
+    def create(self, request, *args, **kwargs):
         payload = request.data
 
         full_name = payload['full_name']
@@ -220,6 +229,8 @@ class CreateOrderView(generics.CreateAPIView):
             user = User.objects.get(id=user_id)
         except:
             user = None
+
+        print(f"DEBUG: user_id = {user_id}, user = {user}")
 
         cart_items = Cart.objects.filter(cart_id = cart_id)
 
@@ -367,7 +378,18 @@ class StripeCheckoutView(generics.CreateAPIView):
             return redirect(checkout_session.url)
         except stripe.error.StripeError as e:
             return Response({"error": f"Something went wrong while creating checkout session: {str(e)}"})
-        
+
+def get_access_token(cilent_id, secret_id):
+    token_url = 'https://api.sandbox.paypal.com/v1/oauth2/token'
+    data = {'grant_type':'client_credentials'}
+    auth = (cilent_id,secret_id)
+    response = requests.post(token_url, data=data, auth=auth)
+    if response.status_code == 200:
+        print("access token:", response.json()['access_token'])
+        return response.json()['access_token']
+    else:
+        raise Exception(f"Failed to get access token:", {response.status_code})
+
 class PaymentSuccessView(generics.CreateAPIView):
     serializer_class = CartOrderSerializer
     permission_classes = [AllowAny]
@@ -378,10 +400,47 @@ class PaymentSuccessView(generics.CreateAPIView):
         
         order_oid = payload['order_oid']
         session_id = payload['session_id']
+        paypal_order_id = payload['paypal_order_id']
+        print("ORDER ID === ", order_oid)
+        print ("paypalOID=== ", paypal_order_id)
 
         order = CartOrder.objects.get(oid=order_oid)
         order_items = CartOrderItem.objects.filter(order=order)
 
+        #get_access_token(settings.PAYPAL_CLIENT_ID, settings.PAYPAL_SECRET_ID)
+
+        #Paypal
+        if paypal_order_id != 'null':
+            paypal_api_url = f'https://api-m.sandbox.paypal.com/v2/checkout/orders/{paypal_order_id}'
+            headers = {
+                'Content-type' : 'application/json',
+                'Authorization' : f'Bearer {get_access_token(settings.PAYPAL_CLIENT_ID, settings.PAYPAL_SECRET_ID)}'
+            }
+
+            response = requests.get(paypal_api_url, headers=headers)
+            if response.status_code == 200:
+                paypal_order_data = response.json()
+                paypal_payment_status = paypal_order_data['status']
+                if paypal_payment_status == "COMPLETED":
+                    if order.payment_status == 'pending':
+                        order.payment_status = 'paid'
+                        order.save()
+
+                        if order.buyer != None:
+                            print(f"✅ Buyer found: {order.buyer}")
+                            send_notification(user=order.buyer,order=order)
+
+                        for o in order_items:
+                            send_notification(vendor=o.vendor,order=order,order_item=o)
+
+                        print("✅ Backend wysyła odpowiedź: Payment Successfull")
+                        return Response({"message":"Payment Successfull"})
+                    else:
+                        return Response({"message":"Already Paid"})
+                else:
+                    return Response({"message":"Your Invoice Is Unpaid"})
+
+        #Stripe
         if session_id != 'null':
             session = stripe.checkout.Session.retrieve(session_id)
 
@@ -389,6 +448,14 @@ class PaymentSuccessView(generics.CreateAPIView):
                 if order.payment_status == 'pending':
                     order.payment_status = 'paid'
                     order.save()
+
+                    if order.buyer != None:
+                        print(f"✅ Buyer found: {order.buyer}")
+                        send_notification(user=order.buyer,order=order)
+
+                    for o in order_items:
+                        send_notification(vendor=o.vendor,order=order,order_item=o)
+
                     return Response({"message":"Payment Successfull"})
                 else:
                     return Response({"message":"Already Paid"})
@@ -400,3 +467,41 @@ class PaymentSuccessView(generics.CreateAPIView):
                 return Response({"message":"An Error Ocurred, Try Again..."})
         else:
             session = None
+
+class ReviewListView(generics.ListCreateAPIView):
+    serializer_class = ReviewSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        product_id = self.kwargs['product_id']
+
+        product = Product.objects.get(id=product_id)
+        reviews = Review.objects.filter(product=product)
+        return reviews
+    
+    def create(self,request,*args,**kwargs):
+        payload = request.data
+        user_id = payload['user_id']
+        product_id = payload['product_id']
+        rating = payload['rating']
+        review = payload['review']
+
+        user = User.objects.get(id=user_id)
+        product = Product.objects.get(id=product_id)
+
+        Review.objects.create(
+            user=user,
+            product=product,
+            rating=rating,
+            review=review
+        )
+        return Response({"message": "Review Created Successfully"}, status=status.HTTP_200_OK)
+    
+class SearchProductView(generics.ListCreateAPIView):
+    serializer_class = ProductSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        query = self.request.GET.get("query")
+        products = Product.objects.filter(status="published", title__icontains=query)
+        return products

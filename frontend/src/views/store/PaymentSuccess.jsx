@@ -8,9 +8,10 @@ function PaymentSuccess() {
     const param = useParams()
     const urlParam = new URLSearchParams(window.location.search)
     const sessionId = urlParam.get("session_id")
+    const paypal_order_id = urlParam.get("paypal_order_id")
 
     useEffect(() => {
-        apiInstance.get(`checkout/${param.order_oid}/`).then((res) => {
+        apiInstance.get(`checkout/${param?.order_oid}/`).then((res) => {
             setOrder(res.data)
         })
     }, [param])
@@ -19,8 +20,9 @@ function PaymentSuccess() {
         const formdata = new FormData()
         formdata.append("order_oid", param?.order_oid)
         formdata.append("session_id", sessionId)
+        formdata.append("paypal_order_id", paypal_order_id)
         setStatus("Verifying")
-        apiInstance.post(`payment-success/${order.oid}/`, formdata).then((res) => {
+        apiInstance.post(`payment-success/${param.order_oid}/`, formdata).then((res) => {
             if(res.data.message === "Payment Successfull"){
                 setStatus("Payment Successfull")
             }
